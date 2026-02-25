@@ -3,6 +3,7 @@ package com.example.conduit.exceptions;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -23,6 +24,18 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ApiException.class)
   public ProblemDetail handleErrorResponse(ErrorResponse ex) {
     return ex.getBody();
+  }
+
+  /**
+   * Bad login credentials
+   * @return 401 UNAUTHORIZED
+   */
+  @ExceptionHandler(BadCredentialsException.class)
+  public ProblemDetail handleBadCredentials() {
+    var problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+    problem.setTitle("Login Failed");
+    problem.setDetail("Your login credentials don't match an account in our system");
+    return problem;
   }
 
   /**
