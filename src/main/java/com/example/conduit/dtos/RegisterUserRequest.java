@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 
 public record RegisterUserRequest(
   @NotBlank(message = "{error.required.field}")
-  @Size(min = 2, message = "{error.size.username}")
+  @Size(min = 2, message = "{error.min.size.string}")
   @Pattern(
     regexp = "^[a-zA-Z0-9._]+$",
     message = "{error.pattern.username}")
@@ -19,7 +19,7 @@ public record RegisterUserRequest(
   String email,
 
   @NotBlank(message = "{error.required.field}")
-  @Size(min = 8, message = "{error.size.password}")
+  @Size(min = 8, message = "{error.min.size.string")
   String password
 ) {
 }
