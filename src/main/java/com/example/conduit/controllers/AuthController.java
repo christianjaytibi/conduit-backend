@@ -1,5 +1,6 @@
 package com.example.conduit.controllers;
 
+import com.example.conduit.dtos.LoginUserRequest;
 import com.example.conduit.dtos.RegisterUserRequest;
 import com.example.conduit.dtos.UserResponse;
 import com.example.conduit.services.UserService;
@@ -36,5 +37,18 @@ public class AuthController {
     return ResponseEntity
       .status(HttpStatus.CREATED)
       .body(response);
+  }
+
+  /**
+   * Logs a user in
+   * @param request The login credentials
+   * @return 200 OK if success, 401 if bad credentials
+   */
+  @PostMapping("login")
+  public ResponseEntity<UserResponse> login(
+    @Valid @RequestBody LoginUserRequest request
+    ) {
+    var response = service.login(request);
+    return ResponseEntity.ok(response);
   }
 }
