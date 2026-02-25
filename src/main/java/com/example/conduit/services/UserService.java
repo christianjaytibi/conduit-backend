@@ -1,5 +1,6 @@
 package com.example.conduit.services;
 
+import com.example.conduit.dtos.LoginUserRequest;
 import com.example.conduit.dtos.RegisterUserRequest;
 import com.example.conduit.dtos.UserResponse;
 import com.example.conduit.entities.Profile;
@@ -10,6 +11,9 @@ import com.example.conduit.mappers.UserMapper;
 import com.example.conduit.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +26,7 @@ public class UserService {
   private final ProfileMapper profileMapper;
   private final PasswordEncoder passwordEncoder;
   private final TokenService tokenService;
+  private final AuthenticationManager authManager;
 
   /**
    * Registers a new user
@@ -39,6 +44,22 @@ public class UserService {
     User user = createNewUser(request);
     String token = tokenService.generateToken(user.getId().toString());
     return userMapper.toDtoWithToken(user, token);
+  }
+
+  /**
+   * Logs a user in
+   * @param request The login credentials
+   * @see LoginUserRequest
+   */
+  @Transactional(readOnly = true)
+  public UserResponse login(LoginUserRequest request) {
+    var authToken = new UsernamePasswordAuthenticationToken(
+      request.email(), request.password());
+    Authentication auth = authManager.authenticate(authToken);
+
+    User user = repo.findByEmail(auth.getName()).get();
+    String jwtToken = tokenService.generateToken(user.getId().toString());
+    return userMapper.toDtoWithToken(user, jwtToken);
   }
 
   /**
