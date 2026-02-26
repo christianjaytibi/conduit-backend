@@ -11,5 +11,6 @@ public interface UserMapper {
 
   @Mapping(target = "password", source = "encodedPassword")
   User entityFrom(RegisterUserRequest request, String encodedPassword);
+  UserResponse toDto(User user);
   UserResponse toDtoWithToken(User user, String token);
 }
