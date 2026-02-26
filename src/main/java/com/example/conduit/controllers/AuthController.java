@@ -9,10 +9,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -49,6 +54,19 @@ public class AuthController {
     @Valid @RequestBody LoginUserRequest request
     ) {
     var response = service.login(request);
+    return ResponseEntity.ok(response);
+  }
+
+  /**
+   * Get current user info
+   * @param jwt The authenticated user
+   * @return 200 OK if success
+   */
+  @GetMapping("me")
+  public ResponseEntity<UserResponse> me (
+    @AuthenticationPrincipal Jwt jwt) {
+    var id = UUID.fromString(jwt.getSubject());
+    var response = service.getCurrentUserInfo(id);
     return ResponseEntity.ok(response);
   }
 }
