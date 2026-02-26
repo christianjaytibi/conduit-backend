@@ -18,6 +18,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -60,6 +62,18 @@ public class UserService {
     User user = repo.findByEmail(auth.getName()).get();
     String jwtToken = tokenService.generateToken(user.getId().toString());
     return userMapper.toDtoWithToken(user, jwtToken);
+  }
+
+  /**
+   * Gets info about current user
+   * @param id User's unique ID
+   * @see UserResponse
+   */
+  public UserResponse getCurrentUserInfo(UUID id) {
+    return repo
+      .findById(id)
+      .map(userMapper::toDto)
+      .orElseThrow(() ->  new ApiException("User not found", HttpStatus.NOT_FOUND));
   }
 
   /**
