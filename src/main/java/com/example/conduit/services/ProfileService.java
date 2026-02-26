@@ -23,18 +23,27 @@ public class ProfileService {
   private final FollowRepository followRepo;
 
   /**
+   * Loads a profile from a given username
+   * @param username The username of requested profile
+   * @throws ApiException if profile is not found
+   * @return The profile entity
+   */
+  private Profile getProfileByUsername(String username) {
+    return profileRepo
+      .findByUsername(username)
+      .orElseThrow(() -> new ApiException("Profile not found", HttpStatus.NOT_FOUND));
+  }
+
+  /**
    * Gets a profile.
    * If authenticated, checks if following.
    * @param jwt The principal
    * @param username The username of requested profile
-   * @throws ApiException if username does not exist
    * @see ProfileResponse
    */
   @Transactional(readOnly = true)
   public ProfileResponse getProfile(Jwt jwt , String username) {
-    Profile profile = profileRepo
-      .findByUsername(username)
-      .orElseThrow(() -> new ApiException("Profile not found", HttpStatus.NOT_FOUND));
+    Profile profile = getProfileByUsername(username);
     ProfileResponse response = mapper.toDto(profile);
     if (jwt == null)
       return response;
