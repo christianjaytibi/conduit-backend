@@ -2,11 +2,13 @@ package com.example.conduit.services;
 
 import com.example.conduit.dtos.ProfileResponse;
 import com.example.conduit.embeddable.FollowId;
+import com.example.conduit.entities.Follow;
 import com.example.conduit.entities.Profile;
 import com.example.conduit.exceptions.ApiException;
 import com.example.conduit.mappers.ProfileMapper;
 import com.example.conduit.repositories.FollowRepository;
 import com.example.conduit.repositories.ProfileRepository;
+import com.example.conduit.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -21,6 +23,7 @@ public class ProfileService {
   private final ProfileRepository profileRepo;
   private final ProfileMapper mapper;
   private final FollowRepository followRepo;
+  private final UserRepository userRepo;
 
   /**
    * Loads a profile from a given username
@@ -32,6 +35,34 @@ public class ProfileService {
     return profileRepo
       .findByUsername(username)
       .orElseThrow(() -> new ApiException("Profile not found", HttpStatus.NOT_FOUND));
+  }
+
+  /**
+   * User-following logic
+   * @param jwt The principal
+   * @param username The username of requested profile
+   * @throws ApiException if following self
+   * @see ProfileResponse
+   */
+  @Transactional
+  public ProfileResponse follow(Jwt jwt, String username) {
+    Profile profile = getProfileByUsername(username);
+    UUID currentUserId = UUID.fromString(jwt.getSubject());
+    UUID otherUserId = profile.getUser().getId();
+
+    if (currentUserId.equals(otherUserId))
+      throw new ApiException("You cannot follow yourself", HttpStatus.CONFLICT);
+
+    var followId = new FollowId(currentUserId, otherUserId);
+    if (followRepo.existsById(followId)) {
+      throw new ApiException("You are already following", HttpStatus.CONFLICT);
+    }
+
+    Follow follow = new Follow(followId);
+    followRepo.save(follow);
+    ProfileResponse response = mapper.toDto(profile);
+    response.setFollowing(true);
+    return response;
   }
 
   /**
