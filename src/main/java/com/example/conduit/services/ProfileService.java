@@ -69,6 +69,17 @@ public class ProfileService {
     return response;
   }
 
+  @Transactional
+  public ProfileResponse unfollow(UUID currentUserId, String username) {
+    Profile profile = findProfileByUsername(username);
+    UUID otherUserId = profile.getUser().getId();
+
+    if (isFollowing(currentUserId, otherUserId))
+      followRepo.deleteById(new FollowId(currentUserId, otherUserId));
+
+    return mapper.toDto(profile);
+  }
+
   /**
    * Gets a profile.
    * If authenticated, checks if following.
