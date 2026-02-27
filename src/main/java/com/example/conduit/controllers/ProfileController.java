@@ -9,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,5 +34,19 @@ public class ProfileController {
     @AuthenticationPrincipal Jwt jwt) {
       var response = service.getProfile(jwt, username);
       return ResponseEntity.ok(response);
+  }
+
+  /**
+   * Follows a user  profile.
+   * @param username The username of profile to follow
+   * @param jwt The principal
+   * @return 200 OK or 409 CONFLICT
+   */
+  @PostMapping("/{username}/follow")
+  public ResponseEntity<ProfileResponse> follow(
+    @PathVariable String username,
+    @AuthenticationPrincipal Jwt jwt) {
+    var response = service.follow(jwt, username);
+    return ResponseEntity.ok(response);
   }
 }
