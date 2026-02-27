@@ -7,6 +7,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -51,6 +52,15 @@ public class ProfileController {
     @AuthenticationPrincipal Jwt jwt) {
     var currentUserId = UUID.fromString(jwt.getSubject());
     var response = service.follow(currentUserId, username);
+    return ResponseEntity.ok(response);
+  }
+
+  @DeleteMapping("/{username}/unfollow")
+  public ResponseEntity<ProfileResponse> unfollow(
+    @PathVariable String username,
+    @AuthenticationPrincipal Jwt jwt) {
+    var currentUserId = UUID.fromString(jwt.getSubject());
+    var response = service.unfollow(currentUserId, username);
     return ResponseEntity.ok(response);
   }
 }
