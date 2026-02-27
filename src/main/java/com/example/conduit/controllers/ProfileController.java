@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.UUID;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(
@@ -32,8 +34,9 @@ public class ProfileController {
   public ResponseEntity<ProfileResponse> profile(
     @PathVariable String username,
     @AuthenticationPrincipal Jwt jwt) {
-      var response = service.getProfile(jwt, username);
-      return ResponseEntity.ok(response);
+    return jwt == null ?
+      ResponseEntity.ok(service.fetchProfile(username)) :
+      ResponseEntity.ok(service.fetchProfile(UUID.fromString(jwt.getSubject()), username));
   }
 
   /**
@@ -46,7 +49,8 @@ public class ProfileController {
   public ResponseEntity<ProfileResponse> follow(
     @PathVariable String username,
     @AuthenticationPrincipal Jwt jwt) {
-    var response = service.follow(jwt, username);
+    var currentUserId = UUID.fromString(jwt.getSubject());
+    var response = service.follow(currentUserId, username);
     return ResponseEntity.ok(response);
   }
 }

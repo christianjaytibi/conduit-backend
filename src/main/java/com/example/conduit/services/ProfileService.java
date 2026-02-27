@@ -8,10 +8,8 @@ import com.example.conduit.exceptions.ApiException;
 import com.example.conduit.mappers.ProfileMapper;
 import com.example.conduit.repositories.FollowRepository;
 import com.example.conduit.repositories.ProfileRepository;
-import com.example.conduit.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +21,6 @@ public class ProfileService {
   private final ProfileRepository profileRepo;
   private final ProfileMapper mapper;
   private final FollowRepository followRepo;
-  private final UserRepository userRepo;
 
   /**
    * Loads a profile from a given username
@@ -31,34 +28,41 @@ public class ProfileService {
    * @throws ApiException if profile is not found
    * @return The profile entity
    */
-  private Profile getProfileByUsername(String username) {
+  private Profile findProfileByUsername(String username) {
     return profileRepo
       .findByUsername(username)
       .orElseThrow(() -> new ApiException("Profile not found", HttpStatus.NOT_FOUND));
   }
 
   /**
+   * Checks if user is following another
+   * @param follower The ID of the supposed follower
+   * @param following The ID of the supposed followed
+   */
+  public boolean isFollowing(UUID follower, UUID following) {
+    var followId = new FollowId(follower, following);
+    return followRepo.existsById(followId);
+  }
+
+  /**
    * User-following logic
-   * @param jwt The principal
+   * @param currentUserId The ID of the current user
    * @param username The username of requested profile
    * @throws ApiException if following self
    * @see ProfileResponse
    */
   @Transactional
-  public ProfileResponse follow(Jwt jwt, String username) {
-    Profile profile = getProfileByUsername(username);
-    UUID currentUserId = UUID.fromString(jwt.getSubject());
+  public ProfileResponse follow(UUID currentUserId, String username) {
+    Profile profile = findProfileByUsername(username);
     UUID otherUserId = profile.getUser().getId();
 
     if (currentUserId.equals(otherUserId))
       throw new ApiException("You cannot follow yourself", HttpStatus.CONFLICT);
-
-    var followId = new FollowId(currentUserId, otherUserId);
-    if (followRepo.existsById(followId)) {
+    if (isFollowing(currentUserId, otherUserId)) {
       throw new ApiException("You are already following", HttpStatus.CONFLICT);
     }
 
-    Follow follow = new Follow(followId);
+    Follow follow = new Follow(currentUserId, otherUserId);
     followRepo.save(follow);
     ProfileResponse response = mapper.toDto(profile);
     response.setFollowing(true);
@@ -68,21 +72,24 @@ public class ProfileService {
   /**
    * Gets a profile.
    * If authenticated, checks if following.
-   * @param jwt The principal
+   * @param currentUserId The ID of the current user
    * @param username The username of requested profile
    * @see ProfileResponse
    */
   @Transactional(readOnly = true)
-  public ProfileResponse getProfile(Jwt jwt , String username) {
-    Profile profile = getProfileByUsername(username);
-    ProfileResponse response = mapper.toDto(profile);
-    if (jwt == null)
-      return response;
+  public ProfileResponse fetchProfile(UUID currentUserId , String username) {
+    Profile profile = findProfileByUsername(username);
+    var response = mapper.toDto(profile);
 
-    UUID currentUserId = UUID.fromString(jwt.getSubject());
     UUID otherUserId = profile.getUser().getId();
-    boolean isFollowing = followRepo.existsById(new FollowId(currentUserId, otherUserId));
-    response.setFollowing(isFollowing);
+    boolean isFollower = isFollowing(currentUserId, otherUserId);
+    response.setFollowing(isFollower);
     return response;
+  }
+
+  @Transactional
+  public ProfileResponse fetchProfile(String username) {
+    Profile profile = findProfileByUsername(username);
+    return mapper.toDto(profile);
   }
 }
