@@ -3,9 +3,9 @@ package com.example.conduit.services;
 import com.example.conduit.dtos.ProfileResponse;
 import com.example.conduit.embeddable.FollowId;
 import com.example.conduit.entities.Follow;
-import com.example.conduit.entities.Profile;
 import com.example.conduit.exceptions.ApiException;
 import com.example.conduit.mappers.ProfileMapper;
+import com.example.conduit.projections.ProfileView;
 import com.example.conduit.repositories.FollowRepository;
 import com.example.conduit.repositories.ProfileRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +28,7 @@ public class ProfileService {
    * @throws ApiException if profile is not found
    * @return The profile entity
    */
-  private Profile findProfileByUsername(String username) {
+  private ProfileView findProfileByUsername(String username) {
     return profileRepo
       .findByUsername(username)
       .orElseThrow(() -> new ApiException("Profile not found", HttpStatus.NOT_FOUND));
@@ -53,8 +53,8 @@ public class ProfileService {
    */
   @Transactional
   public ProfileResponse follow(UUID currentUserId, String username) {
-    Profile profile = findProfileByUsername(username);
-    UUID otherUserId = profile.getUser().getId();
+    ProfileView otherUserProfile = findProfileByUsername(username);
+    UUID otherUserId = otherUserProfile.id();
 
     if (currentUserId.equals(otherUserId))
       throw new ApiException("You cannot follow yourself", HttpStatus.CONFLICT);
@@ -64,20 +64,18 @@ public class ProfileService {
 
     Follow follow = new Follow(currentUserId, otherUserId);
     followRepo.save(follow);
-    ProfileResponse response = mapper.toDto(profile);
-    response.setFollowing(true);
-    return response;
+    return mapper.mapToDto(otherUserProfile, true);
   }
 
   @Transactional
   public ProfileResponse unfollow(UUID currentUserId, String username) {
-    Profile profile = findProfileByUsername(username);
-    UUID otherUserId = profile.getUser().getId();
+    ProfileView otherUserProfile = findProfileByUsername(username);
+    UUID otherUserId = otherUserProfile.id();
 
     if (isFollowing(currentUserId, otherUserId))
       followRepo.deleteById(new FollowId(currentUserId, otherUserId));
 
-    return mapper.toDto(profile);
+    return mapper.mapToDto(otherUserProfile, false);
   }
 
   /**
@@ -89,18 +87,15 @@ public class ProfileService {
    */
   @Transactional(readOnly = true)
   public ProfileResponse fetchProfile(UUID currentUserId , String username) {
-    Profile profile = findProfileByUsername(username);
-    var response = mapper.toDto(profile);
-
-    UUID otherUserId = profile.getUser().getId();
-    boolean isFollower = isFollowing(currentUserId, otherUserId);
-    response.setFollowing(isFollower);
-    return response;
+    ProfileView otherUserProfile = findProfileByUsername(username);
+    UUID otherUserId = otherUserProfile.id();
+    boolean following = isFollowing(currentUserId, otherUserId);
+    return mapper.mapToDto(otherUserProfile, following);
   }
 
-  @Transactional
+  @Transactional(readOnly = true)
   public ProfileResponse fetchProfile(String username) {
-    Profile profile = findProfileByUsername(username);
-    return mapper.toDto(profile);
+    ProfileView otherUserProfile = findProfileByUsername(username);
+    return mapper.mapToDto(otherUserProfile, false);
   }
 }
