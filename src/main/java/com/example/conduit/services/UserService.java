@@ -83,7 +83,7 @@ public class UserService {
    * @see RegisterUserRequest
    */
   private User createNewUser(RegisterUserRequest request) {
-    Profile profile = profileMapper.entityFrom(request);
+    Profile profile = profileMapper.mapToEntity(request);
     String encodedPassword = passwordEncoder.encode(request.password());
     User user = userMapper.entityFrom(request, encodedPassword);
     user.setProfile(profile);
